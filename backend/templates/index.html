@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apuni Sarkar — AI Document Verification</title>
+    <meta name="description" content="Intelligent AI document verification for Indian e-governance portals">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+        --bg:        #05080f;
+        --surface:   #0c1422;
+        --surface-2: #101b2e;
+        --surface-3: #152033;
+        --border:    rgba(255,255,255,0.07);
+        --blue:      #3b82f6;
+        --blue-glow: rgba(59,130,246,0.2);
+        --cyan:      #06b6d4;
+        --green:     #10b981;
+        --amber:     #f59e0b;
+        --red:       #ef4444;
+        --text:      #f0f6ff;
+        --muted:     #5a7090;
+        --r:         14px;
+    }
+
+    body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+    /* ── Ambient glow ── */
+    body::before {
+        content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+        background:
+            radial-gradient(ellipse 70% 50% at 5% 0%, rgba(59,130,246,.10) 0%, transparent 60%),
+            radial-gradient(ellipse 40% 40% at 95% 100%, rgba(6,182,212,.07) 0%, transparent 55%);
+    }
+
+    /* ── Nav ── */
+    nav {
+        position:sticky; top:0; z-index:100;
+        backdrop-filter:blur(18px);
+        border-bottom:1px solid var(--border);
+        background:rgba(5,8,15,.85);
+        display:flex; align-items:center; justify-content:space-between;
+        padding:0 2rem; height:60px;
+    }
+    .nav-brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:1rem; }
+    .nav-dot { width:8px; height:8px; border-radius:50%; background:var(--green); animation:blink 2s ease infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .nav-pill { font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--blue); background:rgba(59,130,246,.12); border:1px solid rgba(59,130,246,.25); padding:3px 10px; border-radius:99px; }
+    .nav-stats { display:flex; gap:1.5rem; font-size:.78rem; color:var(--muted); }
+    .nav-stats span strong { color:var(--text); }
+
+    /* ── Layout ── */
+    .page { position:relative; z-index:1; max-width:1200px; margin:0 auto; padding:2.5rem 1.5rem; }
+
+    /* ── Hero ── */
+    .hero { text-align:center; margin-bottom:2.5rem; }
+    .hero-chip { display:inline-flex; align-items:center; gap:6px; font-size:.72rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--cyan); margin-bottom:.8rem; }
+    .hero h1 { font-size:clamp(1.8rem,3.5vw,2.6rem); font-weight:900; letter-spacing:-1px; line-height:1.15; background:linear-gradient(135deg,#fff 25%,var(--cyan) 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:.75rem; }
+    .hero p { color:var(--muted); font-size:1rem; max-width:480px; margin:0 auto; }
+
+    /* ── Pipeline stepper ── */
+    .stepper { display:flex; align-items:center; justify-content:center; gap:0; margin-bottom:2.5rem; flex-wrap:wrap; }
+    .step { display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:99px; font-size:.74rem; font-weight:600; color:var(--muted); transition:all .3s; white-space:nowrap; }
+    .step .n { width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.65rem; font-weight:700; background:var(--surface-2); border:1px solid var(--border); transition:all .3s; flex-shrink:0; }
+    .step.active { color:var(--text); }
+    .step.active .n { background:var(--blue); border-color:var(--blue); box-shadow:0 0 10px var(--blue-glow); }
+    .step.done { color:var(--green); }
+    .step.done .n { background:rgba(16,185,129,.15); border-color:var(--green); color:var(--green); }
+    .step-arrow { color:var(--border); font-size:.9rem; padding:0 3px; }
+
+    /* ── Main grid ── */
+    .grid { display:grid; grid-template-columns:380px 1fr; gap:1.25rem; align-items:start; }
+    @media(max-width:820px){ .grid { grid-template-columns:1fr; } }
+
+    /* ── Card ── */
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:1.5rem; }
+    .card-label { font-size:.68rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:1rem; }
+
+    /* ── Form fields ── */
+    .fg { margin-bottom:1rem; }
+    .fg label { display:block; font-size:.74rem; font-weight:600; color:var(--muted); margin-bottom:5px; }
+    input[type=text], select {
+        width:100%; background:var(--surface-2); border:1px solid var(--border);
+        border-radius:9px; padding:9px 12px; color:var(--text); font-family:inherit;
+        font-size:.88rem; outline:none; transition:border-color .2s,box-shadow .2s;
+    }
+    input[type=text]:focus, select:focus { border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-glow); }
+    select { cursor:pointer; }
+    .row2 { display:flex; gap:.75rem; }
+    .row2 .fg { flex:1; }
+
+    /* ── Drop zone ── */
+    .dz { border:2px dashed rgba(255,255,255,.1); border-radius:10px; padding:1.8rem 1rem; text-align:center; cursor:pointer; transition:all .25s; background:rgba(255,255,255,.01); margin-bottom:1rem; }
+    .dz:hover,.dz.over { border-color:var(--blue); background:rgba(59,130,246,.05); }
+    .dz input { display:none; }
+    .dz-icon { font-size:1.8rem; opacity:.4; margin-bottom:.4rem; }
+    .dz-main { font-size:.84rem; font-weight:600; margin-bottom:3px; }
+    .dz-sub { font-size:.72rem; color:var(--muted); }
+    .dz-file { margin-top:.6rem; font-size:.76rem; color:var(--blue); font-weight:500; display:none; }
+
+    /* ── Button ── */
+    .btn-run { width:100%; padding:12px; background:linear-gradient(135deg,var(--blue),#2563eb); border:none; border-radius:9px; color:#fff; font-family:inherit; font-size:.92rem; font-weight:700; cursor:pointer; transition:all .25s; box-shadow:0 4px 18px rgba(59,130,246,.3); letter-spacing:.01em; }
+    .btn-run:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 6px 24px rgba(59,130,246,.45); }
+    .btn-run:disabled { opacity:.35; cursor:not-allowed; transform:none; }
+
+    /* ── Results column ── */
+    .results-col { display:flex; flex-direction:column; gap:1.1rem; }
+
+    /* ── Status Banner ── */
+    .status-banner { border-radius:var(--r); padding:1.5rem 1.75rem; display:flex; align-items:center; gap:1.25rem; border:1px solid; }
+    .status-banner .sb-icon { font-size:2.4rem; flex-shrink:0; }
+    .status-banner .sb-label { font-size:.68rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; opacity:.7; margin-bottom:4px; }
+    .status-banner .sb-status { font-size:1.6rem; font-weight:900; letter-spacing:-0.5px; }
+    .status-banner.verified  { background:rgba(16,185,129,.08); border-color:rgba(16,185,129,.3); color:var(--green); }
+    .status-banner.failed    { background:rgba(239,68,68,.08);  border-color:rgba(239,68,68,.3);  color:var(--red); }
+    .status-banner.partial   { background:rgba(245,158,11,.08); border-color:rgba(245,158,11,.3); color:var(--amber); }
+    .status-banner.review    { background:rgba(90,112,144,.08); border-color:rgba(90,112,144,.3); color:var(--muted); }
+
+    /* ── Metric strip ── */
+    .metric-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:.75rem; }
+    @media(max-width:640px){ .metric-strip { grid-template-columns:repeat(2,1fr); } }
+    .metric { background:var(--surface-2); border:1px solid var(--border); border-radius:11px; padding:.9rem; text-align:center; }
+    .metric .mv { font-size:1.4rem; font-weight:800; color:var(--text); line-height:1; }
+    .metric .ml { font-size:.64rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-top:5px; }
+    .metric.highlight { border-color:rgba(59,130,246,.3); background:rgba(59,130,246,.06); }
+    .metric.highlight .mv { color:var(--blue); }
+
+    /* ── Doc type card ── */
+    .doc-type-card { display:flex; align-items:center; gap:12px; padding:.9rem 1.1rem; background:var(--surface-2); border:1px solid var(--border); border-radius:11px; }
+    .dtc-icon { font-size:1.6rem; flex-shrink:0; }
+    .dtc-sub  { font-size:.65rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
+    .dtc-name { font-size:.95rem; font-weight:700; }
+    .dtc-bar-wrap { margin-left:auto; text-align:right; flex-shrink:0; min-width:80px; }
+    .bar-bg { height:4px; border-radius:99px; background:var(--surface); overflow:hidden; }
+    .bar-fill { height:100%; border-radius:99px; background:var(--cyan); transition:width .6s cubic-bezier(.4,0,.2,1); }
+    .bar-label { font-size:.62rem; color:var(--muted); margin-top:3px; text-align:right; }
+
+    /* ── Translation card ── */
+    .trans-card { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+    .trans-box { background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:.85rem; }
+    .trans-box .tl { font-size:.63rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
+    .trans-box .tv { font-size:1rem; font-weight:700; color:var(--text); }
+    .trans-box .tm { font-size:.62rem; color:var(--muted); margin-top:3px; }
+
+    /* ── Field rows ── */
+    .field-row { display:flex; align-items:center; justify-content:space-between; padding:.85rem 0; border-bottom:1px solid var(--border); }
+    .field-row:last-child { border-bottom:none; }
+    .fr-l { flex:1; min-width:0; }
+    .fr-lbl { font-size:.65rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+    .fr-val { font-size:.92rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .fr-val.nil { color:var(--muted); font-weight:400; font-style:italic; }
+    .fr-r { display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex-shrink:0; padding-left:.75rem; }
+    .badge { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:99px; font-size:.62rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; }
+    .badge::before { content:'●'; font-size:.45rem; }
+    .bm  { background:rgba(16,185,129,.12); color:var(--green); }
+    .bmm { background:rgba(239,68,68,.12);  color:var(--red); }
+    .bp  { background:rgba(245,158,11,.12); color:var(--amber); }
+    .bu  { background:rgba(90,112,144,.12); color:var(--muted); }
+    .conf-wrap { width:64px; }
+    .conf-label { font-size:.6rem; color:var(--muted); margin-top:2px; text-align:right; }
+
+    /* ── OCR panel ── */
+    .ocr-toggle { font-size:.72rem; color:var(--muted); cursor:pointer; display:flex; align-items:center; gap:5px; padding:.75rem 0; border-top:1px solid var(--border); user-select:none; margin-top:.5rem; }
+    .ocr-toggle:hover { color:var(--text); }
+    #ocr-box { display:none; margin-top:.6rem; background:var(--surface-3); border:1px solid var(--border); border-radius:9px; padding:.9rem; font-size:.74rem; color:var(--muted); line-height:1.7; max-height:160px; overflow-y:auto; white-space:pre-wrap; word-break:break-word; font-family:monospace; }
+
+    /* ── Compression card ── */
+    .comp-strip { display:grid; grid-template-columns:repeat(3,1fr); gap:.75rem; }
+    .comp-box { background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:.85rem; text-align:center; }
+    .comp-box .cv { font-size:1.25rem; font-weight:800; color:var(--text); }
+    .comp-box.green .cv { color:var(--green); }
+    .comp-box .cl { font-size:.62rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-top:4px; }
+
+    /* ── Impact panel ── */
+    .impact-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:.75rem; }
+    .impact-box { background:linear-gradient(135deg,rgba(59,130,246,.05),rgba(6,182,212,.05)); border:1px solid rgba(59,130,246,.15); border-radius:10px; padding:.9rem 1rem; }
+    .ib-val { font-size:1.5rem; font-weight:900; color:var(--blue); line-height:1; }
+    .ib-lbl { font-size:.64rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); margin-top:5px; }
+
+    /* ── Spinner ── */
+    .spinner-wrap { display:none; flex-direction:column; align-items:center; padding:2.5rem 0; }
+    .spinner-wrap.show { display:flex; }
+    .spinner { width:38px; height:38px; border:3px solid rgba(255,255,255,.07); border-top-color:var(--blue); border-radius:50%; animation:spin .7s linear infinite; margin-bottom:.9rem; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spin-lbl { font-size:.8rem; color:var(--muted); text-align:center; }
+
+    /* ── Placeholder ── */
+    .placeholder { text-align:center; padding:3rem 1rem; color:var(--muted); }
+    .placeholder .ph-icon { font-size:2.5rem; opacity:.2; margin-bottom:.8rem; }
+    .placeholder p { font-size:.85rem; }
+
+    /* ── Toast ── */
+    .toast { position:fixed; bottom:1.75rem; left:50%; transform:translateX(-50%) translateY(12px); background:#1a0a0a; border:1px solid rgba(239,68,68,.4); color:var(--red); padding:10px 18px; border-radius:10px; font-size:.82rem; opacity:0; transition:all .3s; z-index:999; max-width:400px; text-align:center; pointer-events:none; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    /* ── Hidden helper ── */
+    .hidden { display:none !important; }
+
+    footer { text-align:center; padding:2rem; font-size:.72rem; color:var(--muted); border-top:1px solid var(--border); margin-top:3.5rem; }
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+    <div class="nav-brand"><div class="nav-dot"></div> Apuni Sarkar · AI Engine</div>
+    <div class="nav-stats" id="nav-stats">
+        <span>Docs Processed: <strong id="ns-docs">0</strong></span>
+        <span>Size Saved: <strong id="ns-saved">0 MB</strong></span>
+    </div>
+    <span class="nav-pill">Hackathon Demo</span>
+</nav>
+
+<div class="page">
+
+    <!-- HERO -->
+    <div class="hero">
+        <div class="hero-chip">⚡ Hindi + English OCR · 18 Document Types · Sub-10s Processing</div>
+        <h1>AI Document Verification<br>Pipeline</h1>
+        <p>Upload any Indian government document and get AI-powered field extraction, translation, and live verification in seconds.</p>
+    </div>
+
+    <!-- PIPELINE STEPPER -->
+    <div class="stepper" id="stepper">
+        <div class="step active" id="ps-1"><div class="n">1</div> Upload &amp; Compress</div>
+        <div class="step-arrow">→</div>
+        <div class="step" id="ps-2"><div class="n">2</div> AI OCR</div>
+        <div class="step-arrow">→</div>
+        <div class="step" id="ps-3"><div class="n">3</div> Extract &amp; Translate</div>
+        <div class="step-arrow">→</div>
+        <div class="step" id="ps-4"><div class="n">4</div> Verify</div>
+    </div>
+
+    <div class="grid">
+
+        <!-- LEFT: FORM -->
+        <div class="card">
+            <div class="card-label">Application Metadata</div>
+
+            <div class="fg">
+                <label>Document Type</label>
+                <select id="doc-type-select" onchange="switchDocType()">
+                    <option value="aadhaar">🪪 Aadhaar Card</option>
+                    <option value="pan">💳 PAN Card</option>
+                    <option value="voter_id">🗳️ Voter ID (EPIC)</option>
+                    <option value="passport">📕 Passport</option>
+                    <option value="driving_license">🚗 Driving Licence</option>
+                    <option value="income_certificate">📑 Income Certificate</option>
+                    <option value="domicile_certificate">🏠 Domicile Certificate</option>
+                    <option value="caste_certificate">📋 Caste / OBC Certificate</option>
+                    <option value="birth_certificate">👶 Birth Certificate</option>
+                    <option value="death_certificate">🕊️ Death Certificate</option>
+                    <option value="marriage_certificate">💍 Marriage Certificate</option>
+                    <option value="land_record">🌾 Land Record (Khasra)</option>
+                    <option value="ration_card">🛒 Ration Card</option>
+                    <option value="bank_passbook">🏦 Bank Passbook</option>
+                    <option value="mark_sheet">📚 Mark Sheet</option>
+                    <option value="disability_certificate">♿ Disability Certificate</option>
+                    <option value="character_certificate">📜 Character Certificate</option>
+                    <option value="medical_certificate">🏥 Medical Certificate</option>
+                </select>
+            </div>
+
+            <div class="fg">
+                <label>Full Name</label>
+                <input type="text" id="meta-name" placeholder="e.g. Ramesh Kumar" value="Ramesh Kumar">
+            </div>
+
+            <div id="dynamic-fields"></div>
+
+            <div class="card-label" style="margin-top:1.1rem;">Document Upload</div>
+            <div class="dz" id="dz" onclick="document.getElementById('fin').click()">
+                <input type="file" id="fin" accept="image/*,.pdf">
+                <div class="dz-icon">📄</div>
+                <div class="dz-main">Drag &amp; drop or click to upload</div>
+                <div class="dz-sub">PDF, JPEG, PNG — up to 10 MB</div>
+                <div class="dz-file" id="dz-file"></div>
+            </div>
+
+            <button class="btn-run" id="btn-run" disabled onclick="runPipeline()">
+                ▶ Run AI Verification
+            </button>
+        </div>
+
+        <!-- RIGHT: RESULTS -->
+        <div class="results-col" id="results-col">
+
+            <!-- Spinner -->
+            <div class="spinner-wrap" id="spinner">
+                <div class="spinner"></div>
+                <div class="spin-lbl" id="spin-lbl">Starting…</div>
+            </div>
+
+            <!-- Placeholder -->
+            <div class="card placeholder" id="placeholder">
+                <div class="ph-icon">🔍</div>
+                <p>Upload a document and click<br><strong>Run AI Verification</strong> to begin.</p>
+            </div>
+
+            <!-- ── STEP-BY-STEP RESULTS (hidden until data arrives) ── -->
+
+            <!-- 1. Compression result -->
+            <div class="card hidden" id="card-compression">
+                <div class="card-label">📦 Compression Results</div>
+                <div class="comp-strip">
+                    <div class="comp-box">
+                        <div class="cv" id="c-orig">—</div>
+                        <div class="cl">Original Size</div>
+                    </div>
+                    <div class="comp-box">
+                        <div class="cv" id="c-opt">—</div>
+                        <div class="cl">Optimised Size</div>
+                    </div>
+                    <div class="comp-box green">
+                        <div class="cv" id="c-pct">—</div>
+                        <div class="cl">Compression</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Verification status banner -->
+            <div class="status-banner hidden review" id="banner-status">
+                <div class="sb-icon" id="sb-icon">⏳</div>
+                <div>
+                    <div class="sb-label">Verification Status</div>
+                    <div class="sb-status" id="sb-status">Awaiting Verification…</div>
+                </div>
+            </div>
+
+            <!-- 3. Doc type + metrics -->
+            <div class="card hidden" id="card-metrics">
+                <div class="card-label">📊 Processing Metrics</div>
+                <div class="doc-type-card" id="dtc" style="margin-bottom:.85rem;">
+                    <div class="dtc-icon" id="dtc-icon">📄</div>
+                    <div>
+                        <div class="dtc-sub">Detected Document</div>
+                        <div class="dtc-name" id="dtc-name">—</div>
+                    </div>
+                    <div class="dtc-bar-wrap">
+                        <div class="bar-bg"><div class="bar-fill" id="dtc-bar" style="width:0%"></div></div>
+                        <div class="bar-label" id="dtc-conf">0%</div>
+                    </div>
+                </div>
+                <div class="metric-strip">
+                    <div class="metric"><div class="mv" id="m-orig">—</div><div class="ml">Original MB</div></div>
+                    <div class="metric highlight"><div class="mv" id="m-opt">—</div><div class="ml">Optimised MB</div></div>
+                    <div class="metric highlight"><div class="mv" id="m-comp">—</div><div class="ml">Compression</div></div>
+                    <div class="metric"><div class="mv" id="m-time">—</div><div class="ml">Process Sec</div></div>
+                </div>
+            </div>
+
+            <!-- 5. Extracted fields -->
+            <div class="card hidden" id="card-fields">
+                <div class="card-label">🗂️ Extracted &amp; Verified Fields</div>
+                <div id="fields-container"></div>
+                <!-- OCR Text -->
+                <div class="ocr-toggle" onclick="toggleOcr()">
+                    <span id="ocr-arrow">▶</span> OCR Extracted Raw Text
+                </div>
+                <div id="ocr-box"></div>
+            </div>
+
+            <!-- 6. System Impact -->
+            <div class="card hidden" id="card-impact">
+                <div class="card-label">⚡ System Impact — This Session</div>
+                <div class="impact-grid">
+                    <div class="impact-box">
+                        <div class="ib-val" id="i-docs">0</div>
+                        <div class="ib-lbl">Documents Processed</div>
+                    </div>
+                    <div class="impact-box">
+                        <div class="ib-val" id="i-saved">0 MB</div>
+                        <div class="ib-lbl">Total Size Saved</div>
+                    </div>
+                    <div class="impact-box">
+                        <div class="ib-val" id="i-time">—</div>
+                        <div class="ib-lbl">Last Processing Time</div>
+                    </div>
+                    <div class="impact-box">
+                        <div class="ib-val" id="i-review">—</div>
+                        <div class="ib-lbl">Manual Review Needed</div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /results-col -->
+    </div><!-- /grid -->
+</div>
+
+<footer>Apuni Sarkar · AI Document Verification Pipeline · Built for Hackathon Demo · © 2025</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────────
+const API = window.location.origin;
+let file = null, rawOcr = '', ocrVisible = false;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DROP ZONE
+// ─────────────────────────────────────────────────────────────────────────────
+const dzEl = document.getElementById('dz');
+const finEl = document.getElementById('fin');
+['dragenter','dragover','dragleave','drop'].forEach(e => dzEl.addEventListener(e,ev=>{ ev.preventDefault(); ev.stopPropagation(); }));
+['dragenter','dragover'].forEach(e => dzEl.addEventListener(e, ()=>dzEl.classList.add('over')));
+['dragleave','drop'].forEach(e => dzEl.addEventListener(e, ()=>dzEl.classList.remove('over')));
+dzEl.addEventListener('drop', e => pickFile(e.dataTransfer.files[0]));
+finEl.addEventListener('change', e => pickFile(e.target.files[0]));
+
+function pickFile(f){
+    if(!f) return; file = f;
+    const el = document.getElementById('dz-file');
+    el.textContent = `✓ ${f.name}  (${(f.size/1024/1024).toFixed(2)} MB)`;
+    el.style.display = 'block';
+    document.getElementById('btn-run').disabled = false;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DOCUMENT TYPE SCHEMAS
+// ─────────────────────────────────────────────────────────────────────────────
+const SCHEMAS = {
+    aadhaar:              [{ id:'meta-aadhaar', label:'Aadhaar Number', ph:'1234 5678 9012',  max:14, key:'aadhaar_number', hint:'12 digits', val:'1234 5678 9012' },{ id:'meta-dob', label:'Date of Birth', ph:'DD/MM/YYYY', max:10, key:'dob', hint:'DD/MM/YYYY', val:'12/05/1988' }],
+    pan:                  [{ id:'meta-pan',     label:'PAN Number',     ph:'ABCDE1234F',      max:10, key:'pan_number',     hint:'10 chars' },{ id:'meta-dob', label:'DOB', ph:'DD/MM/YYYY', max:10, key:'dob', hint:'DD/MM/YYYY' }],
+    voter_id:             [{ id:'meta-voterid', label:'Voter ID (EPIC)', ph:'ABC1234567',     max:12, key:'aadhaar_number', hint:'10-12 chars (use Aadhaar field)' }],
+    passport:             [{ id:'meta-passp',   label:'Passport No.',   ph:'A1234567',        max:8,  key:'aadhaar_number', hint:'8 chars' },{ id:'meta-dob', label:'DOB', ph:'DD/MM/YYYY', max:10, key:'dob', hint:'DD/MM/YYYY' }],
+    driving_license:      [{ id:'meta-dl',      label:'DL Number',      ph:'UK01 20150012345',max:20, key:'aadhaar_number', hint:'state + RTO + year + serial' },{ id:'meta-dob', label:'DOB', ph:'DD/MM/YYYY', max:10, key:'dob', hint:'DD/MM/YYYY' }],
+    income_certificate:   [{ id:'meta-district',label:'District',        ph:'e.g. Dehradun',  max:60, key:'district' },{ id:'meta-dob', label:'DOB', ph:'DD/MM/YYYY', max:10, key:'dob', hint:'DD/MM/YYYY' }],
+    domicile_certificate: [{ id:'meta-district',label:'District',        ph:'e.g. Haridwar',  max:60, key:'district' },{ id:'meta-aadhaar', label:'Aadhaar', ph:'1234 5678 9012', max:14, key:'aadhaar_number' }],
+    caste_certificate:    [{ id:'meta-dob',     label:'DOB',             ph:'DD/MM/YYYY',     max:10, key:'dob' },  { id:'meta-aadhaar', label:'Aadhaar', ph:'1234 5678 9012', max:14, key:'aadhaar_number' }],
+    birth_certificate:    [{ id:'meta-dob',     label:'Date of Birth',   ph:'DD/MM/YYYY',     max:10, key:'dob' },  { id:'meta-district', label:'Place / District', ph:'e.g. Nainital', max:60, key:'district' }],
+    death_certificate:    [{ id:'meta-dod',     label:'Date of Death',   ph:'DD/MM/YYYY',     max:10, key:'dob' }],
+    marriage_certificate: [{ id:'meta-dob',     label:'Marriage Date',   ph:'DD/MM/YYYY',     max:10, key:'dob' }],
+    land_record:          [{ id:'meta-khasra',  label:'Khasra / Khata No.', ph:'e.g. 123/4',  max:30, key:'aadhaar_number', hint:'plot/survey no.' }],
+    ration_card:          [{ id:'meta-aadhaar', label:'Aadhaar Number',  ph:'1234 5678 9012', max:14, key:'aadhaar_number' }],
+    bank_passbook:        [{ id:'meta-accno',   label:'Account Number',  ph:'0001234567890',  max:20, key:'aadhaar_number', hint:'12-18 digits' }],
+    mark_sheet:           [{ id:'meta-roll',    label:'Roll Number',     ph:'e.g. 1234567',   max:15, key:'aadhaar_number', hint:'board roll no.' },{ id:'meta-dob', label:'DOB', ph:'DD/MM/YYYY', max:10, key:'dob' }],
+    disability_certificate:[{ id:'meta-dob',    label:'DOB',             ph:'DD/MM/YYYY',     max:10, key:'dob' }],
+    character_certificate: [{ id:'meta-dob',    label:'DOB',             ph:'DD/MM/YYYY',     max:10, key:'dob' }],
+    medical_certificate:   [{ id:'meta-dob',    label:'DOB',             ph:'DD/MM/YYYY',     max:10, key:'dob' }],
+};
+
+const DT_ICONS = {
+    aadhaar:'🪪',pan:'💳',voter_id:'🗳️',passport:'📕',driving_license:'🚗',
+    income_certificate:'📑',domicile_certificate:'🏠',caste_certificate:'📋',
+    birth_certificate:'👶',death_certificate:'🕊️',marriage_certificate:'💍',
+    land_record:'🌾',ration_card:'🛒',bank_passbook:'🏦',mark_sheet:'📚',
+    disability_certificate:'♿',character_certificate:'📜',medical_certificate:'🏥',
+    unknown:'📄'
+};
+
+function switchDocType(auto){
+    const sel = auto || document.getElementById('doc-type-select').value;
+    if(auto) document.getElementById('doc-type-select').value = auto;
+    const schema = SCHEMAS[sel] || [];
+    const wrap = document.getElementById('dynamic-fields');
+    wrap.innerHTML = '';
+    if(!schema.length) return;
+    const row = document.createElement('div'); row.className='row2';
+    schema.forEach(f => {
+        const fg = document.createElement('div'); fg.className='fg';
+        fg.innerHTML = `<label>${f.label}${f.hint?` <span style="font-weight:400;opacity:.55;font-size:.68rem">(${f.hint})</span>`:''}</label><input type="text" id="${f.id}" placeholder="${f.ph}" maxlength="${f.max}" value="${f.val||''}">`;
+        row.appendChild(fg);
+    });
+    wrap.appendChild(row);
+}
+
+function buildPayload(fileId){
+    const sel = document.getElementById('doc-type-select').value;
+    const base = { file_id:fileId, name:document.getElementById('meta-name').value.trim()||null };
+    (SCHEMAS[sel]||[]).forEach(f => { const el=document.getElementById(f.id); if(el) base[f.key]=el.value.trim()||null; });
+    return base;
+}
+
+switchDocType(); // init on load
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PIPELINE STEP HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+function stepActive(n){ for(let i=1;i<=4;i++){ const el=document.getElementById(`ps-${i}`); el.classList.remove('active','done'); if(i<n)el.classList.add('done'); if(i===n)el.classList.add('active'); } }
+function stepDone(n){ const el=document.getElementById(`ps-${n}`); el.classList.remove('active'); el.classList.add('done'); }
+function spin(show,lbl=''){ document.getElementById('spinner').classList.toggle('show',show); document.getElementById('spin-lbl').textContent=lbl; }
+function show(id){ document.getElementById(id).classList.remove('hidden'); }
+function hide(id){ document.getElementById(id).classList.add('hidden'); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN PIPELINE
+// ─────────────────────────────────────────────────────────────────────────────
+async function runPipeline(){
+    if(!file) return;
+    const btn=document.getElementById('btn-run'); btn.disabled=true;
+    hide('placeholder'); hide('card-compression'); hide('banner-status');
+    hide('card-metrics'); hide('card-fields'); hide('card-impact');
+
+    try {
+        // ── 1. UPLOAD ───────────────────────────────────────────────────────
+        stepActive(1); spin(true,'Compressing & uploading document…');
+        const fd=new FormData(); fd.append('file',file);
+        const up = await req('/upload','POST',fd,false);
+        stepDone(1); spin(false);
+
+        // Show compression card immediately after upload
+        document.getElementById('c-orig').textContent = up.file_info.original_size_mb + ' MB';
+        document.getElementById('c-opt') .textContent = up.file_info.optimized_size_mb + ' MB';
+        document.getElementById('c-pct') .textContent = up.file_info.compression_pct   + '%';
+        show('card-compression');
+
+        // ── 2+3. PROCESS ────────────────────────────────────────────────────
+        stepActive(2); spin(true,'Running AI OCR — first run may take ~15s…');
+        const pfd=new FormData(); pfd.append('file_id',up.file_id);
+        const proc = await req('/process-document','POST',pfd,false);
+        stepDone(2); stepDone(3);
+        rawOcr = proc.raw_text || '';
+        spin(false);
+
+        // ── 4. VERIFY ───────────────────────────────────────────────────────
+        stepActive(4); spin(true,'Validating fields against metadata…');
+        const ver = await req('/verify-application','POST',JSON.stringify(buildPayload(up.file_id)),true);
+        stepDone(4); spin(false);
+
+        renderResults(up, proc, ver);
+
+    } catch(e){
+        spin(false); stepActive(1);
+        show('placeholder');
+        toast('⚠ '+( e.message||String(e) ));
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function req(path, method, body, json){
+    const opts={method,body};
+    if(json) opts.headers={'Content-Type':'application/json'};
+    const r = await fetch(API+path, opts);
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||`HTTP ${r.status}`); }
+    return r.json();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER RESULTS
+// ─────────────────────────────────────────────────────────────────────────────
+const FIELD_LABELS = {
+    name:'Full Name', aadhaar_number:'Aadhaar Number', pan_number:'PAN Number',
+    dob:'Date of Birth', district:'District', address:'Address'
+};
+
+function renderResults(up, proc, ver){
+    const data = ver.data || ver; // handle both wrapped and flat
+
+    // ── Verification status banner ───────────────────────────────────────
+    const os = (data.validation?.overall_status || 'unknown').replace(/_/g,' ');
+    const banner = document.getElementById('banner-status');
+    banner.className = 'status-banner';
+    let icon='📋', cls='review';
+    if(os.includes('verified') && !os.includes('partial'))  { icon='✅'; cls='verified'; }
+    else if(os.includes('failed'))   { icon='❌'; cls='failed'; }
+    else if(os.includes('partial'))  { icon='⚠️'; cls='partial'; }
+    banner.classList.add(cls);
+    document.getElementById('sb-icon').textContent = icon;
+    document.getElementById('sb-status').textContent = os.toUpperCase();
+    show('banner-status');
+
+    // ── Metrics card ─────────────────────────────────────────────────────
+    const dt = data.document_type || proc.document_type || {};
+    document.getElementById('dtc-icon').textContent = DT_ICONS[dt.type] || '📄';
+    document.getElementById('dtc-name').textContent = dt.label || 'Unknown';
+    const dtConf = Math.round((dt.confidence||0)*100);
+    document.getElementById('dtc-bar') .style.width = dtConf+'%';
+    document.getElementById('dtc-conf').textContent  = dtConf+'%';
+
+    document.getElementById('m-orig').textContent = (data.file_info?.original_size_mb  || up.file_info.original_size_mb) + ' MB';
+    document.getElementById('m-opt') .textContent = (data.file_info?.optimized_size_mb || up.file_info.optimized_size_mb) + ' MB';
+    document.getElementById('m-comp').textContent = (data.compression_pct ?? up.file_info.compression_pct) + '%';
+    document.getElementById('m-time').textContent = (data.processing_time_sec ?? '—') + 's';
+    show('card-metrics');
+
+    // ── Auto-switch doc type form ─────────────────────────────────────────
+    if(dt.type && SCHEMAS[dt.type]) switchDocType(dt.type);
+
+
+    // ── Field rows ────────────────────────────────────────────────────────
+    const fc = document.getElementById('fields-container'); fc.innerHTML='';
+    const exF = data.extracted_fields || {};
+    const valF= data.validation?.fields || {};
+    const keys = new Set([...Object.keys(exF),...Object.keys(valF)]);
+    keys.delete('raw_text');
+
+    keys.forEach(key => {
+        const ex  = exF[key]  || {};
+        const val = valF[key];
+        const lbl = FIELD_LABELS[key] || key.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+        const v   = ex.value;
+        const st  = val?.status || 'unknown';
+        const bc  = st==='matched'?'bm': st==='mismatched'?'bmm': st==='partial_match'?'bp':'bu';
+        const sc  = typeof val?.score==='number'? Math.round(val.score): Math.round((ex.confidence||0)*100);
+
+        const row=document.createElement('div'); row.className='field-row';
+        row.innerHTML=`
+            <div class="fr-l">
+                <div class="fr-lbl">${lbl}</div>
+                <div class="fr-val ${v?'':'nil'}">${v??'Not Detected'}</div>
+            </div>
+            <div class="fr-r">
+                ${val?`<span class="badge ${bc}">${st.replace('_',' ')}</span>`:''}
+                <div class="conf-wrap">
+                    <div class="bar-bg"><div class="bar-fill" style="width:${sc}%"></div></div>
+                    <div class="conf-label">${sc}%</div>
+                </div>
+            </div>`;
+        fc.appendChild(row);
+    });
+
+    document.getElementById('ocr-box').textContent = rawOcr || '(No OCR text captured)';
+    show('card-fields');
+
+    // ── Impact panel ──────────────────────────────────────────────────────
+    fetchStats().then(s => {
+        document.getElementById('i-docs') .textContent = s.docs_processed || 1;
+        document.getElementById('i-saved').textContent = (s.total_size_saved_mb||0).toFixed(2)+' MB';
+        document.getElementById('i-time') .textContent = (data.processing_time_sec??'—')+'s';
+        document.getElementById('i-review').textContent=
+            os.includes('failed')||os.includes('partial') ? '⚠️ Yes' : '✅ No';
+        show('card-impact');
+        document.getElementById('ns-docs').textContent = s.docs_processed||'—';
+        document.getElementById('ns-saved').textContent= (s.total_size_saved_mb||0).toFixed(1)+' MB';
+    });
+}
+
+async function fetchStats(){ try{ return await req('/stats','GET',null,false); }catch{ return {}; } }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OCR TOGGLE
+// ─────────────────────────────────────────────────────────────────────────────
+function toggleOcr(){
+    ocrVisible=!ocrVisible;
+    document.getElementById('ocr-box').style.display   = ocrVisible?'block':'none';
+    document.getElementById('ocr-arrow').textContent   = ocrVisible?'▼':'▶';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────────────────────────────────────
+let _t;
+function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(_t); _t=setTimeout(()=>el.classList.remove('show'),5500); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────────────────
+fetchStats().then(s=>{
+    document.getElementById('ns-docs') .textContent = s.docs_processed||0;
+    document.getElementById('ns-saved').textContent = (s.total_size_saved_mb||0).toFixed(1)+' MB';
+});
+</script>
+</body>
+</html>
