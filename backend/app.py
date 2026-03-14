@@ -15,7 +15,7 @@ from services.validation import validate_data
 from services.report_engine import generate_verification_report
 from services.classifier import classify_document
 
-app = FastAPI(title="GovDoc AI Pipeline", version="2.0.0")
+app = FastAPI(title="CheckTrust", version="2.0.0")
 
 templates = Jinja2Templates(directory="templates")
 
